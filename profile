@@ -34,27 +34,60 @@ if [ -d /opt/circuit_macros ]; then
 fi
 
 # PATH
+,add-to-path() {
+    for i in "$@"; do
+        # if $i is a directory and NOT contained in $PATH
+        if [ -d $i ] && [ "${PATH##*$i*}" = "$PATH" ]; then
+            export PATH="$i:$PATH"
+        fi
+    done
+}
+
 LOCALBINPATH=("$HOME/bin" "$HOME/.local/bin" "$HOME/.cabal/bin")
+,add-to-path "${LOCALBINPATH[@]}"
+
 case "$(uname -s 2> /dev/null)" in
     Darwin*)
-        GNUBINPATH=(
-            "/usr/local/opt/coreutils/libexec/gnubin"
-            "/usr/local/opt/findutils/libexec/gnubin"
-            "/usr/local/opt/gnu-getopt/bin"
-            "/usr/local/opt/gnu-indent/libexec/gnubin"
-            "/usr/local/opt/gnu-sed/libexec/gnubin"
-            "/usr/local/opt/gnu-tar/libexec/gnubin"
-            "/usr/local/opt/gnu-which/libexec/gnubin"
-            "/usr/local/opt/grep/libexec/gnubin"
-        ) ;;
-    *)  GNUBINPATH=() ;;
+        ,enable-homebrew() {
+            if [ -d '/opt/homebrew' ]; then
+                eval $(/opt/homebrew/bin/brew shellenv)
+            fi
+        }
+        ,enable-gnu-commands() {
+            brewroots=("/opt/homebrew" "/usr/local")
+            for root in "${brewroots[@]}"; do
+                if [ ! -d "$root" ]; then
+                    continue
+                fi
+                gnubinpath=(
+                    "$root/opt/coreutils/libexec/gnubin"
+                    "$root/opt/findutils/libexec/gnubin"
+                    "$root/opt/gnu-getopt/bin"
+                    "$root/opt/gnu-indent/libexec/gnubin"
+                    "$root/opt/gnu-sed/libexec/gnubin"
+                    "$root/opt/gnu-tar/libexec/gnubin"
+                    "$root/opt/gnu-which/libexec/gnubin"
+                    "$root/opt/grep/libexec/gnubin"
+                )
+                ,add-to-path "${gnubinpath[@]}"
+                break
+            done
+        }
+        ,enable-rancher-commands() {
+            ,add-to-path "$HOME/.rd/bin"
+        }
+        ,enable-libpg-commands() {
+            brewroots=("/opt/homebrew" "/usr/local")
+            for root in "${brewroots[@]}"; do
+                if [ ! -d "$root" ]; then
+                    continue
+                fi
+                ,add-to-path "$root/opt/libpq/bin"
+                break
+            done
+        }
+        ;;
 esac
-for i in "${LOCALBINPATH[@]}" "${GNUBINPATH[@]}"; do
-    # if $i is a directory and NOT contained in $PATH
-    if [ -d $i ] && [ "${PATH##*$i*}" = "$PATH" ]; then
-        export PATH="$i:$PATH"
-    fi
-done
 
 # Envs for input methods
 case "$(uname -s 2> /dev/null)" in
