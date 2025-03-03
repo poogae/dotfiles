@@ -1,0 +1,50 @@
+[general]
+import = [ "alacritty-theme/themes/gruvbox_dark.toml" ]
+
+[window]
+dimensions = { columns = 110, lines = 255 }
+
+[font]
+normal = { family = "0xProto Nerd Font", style = "Regular" }
+size = 15
+
+[cursor]
+style = { shape = "Block", blinking = "Always" }
+blink_interval = 500
+
+[[hints.enabled]]
+command = "open" # On macOS
+post_processing = true
+persist = true
+mouse = { enabled = true }
+binding = { key = "O", mods = "Control|Shift" }
+hyperlinks = true
+regex = "(ipfs:|ipns:|magnet:|mailto:|gemini://|gopher://|https://|http://|news:|file:|git://|ssh:|ftp://)[^\u0000-\u001F\u007F-\u009F<>\"\\s{-}\\^⟨⟩`]+"
+
+[keyboard]
+
+# [ToggleViMode] disabled
+
+[[keyboard.bindings]]
+mods = "Control|Shift"
+key = "Space"
+action = "ReceiveChar"
+
+[[keyboard.bindings]]
+mods = "Control|Shift"
+key = "Space"
+action = "ToggleViMode"
+
+# [SearchForward, SearchBackward] disabled
+
+[[keyboard.bindings]]
+mods = "Command"
+key = "F"
+mode = "~Search"
+action = "ReceiveChar"
+
+[[keyboard.bindings]]
+mods = "Command"
+key = "B"
+mode = "~Search"
+action = "ReceiveChar"
