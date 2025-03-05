@@ -159,3 +159,18 @@ if ! shopt -oq posix; then
         fi
     done
 fi
+
+
+# ==================================================
+# Config for third-party commands
+# ==================================================
+
+# sdkman {{{
+,enable-sdkman() {
+    sdkman_dir="$(brew --prefix sdkman-cli)/libexec"
+    if [ -s "$sdkman_dir/bin/sdkman-init.sh" ]; then
+        export SDKMAN_DIR="$sdkman_dir"
+        source "$sdkman_dir/bin/sdkman-init.sh"
+    fi
+}
+# }}}
