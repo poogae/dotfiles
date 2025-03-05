@@ -52,6 +52,7 @@ case "$(uname -s 2> /dev/null)" in
             if [ -d '/opt/homebrew' ]; then
                 eval $(/opt/homebrew/bin/brew shellenv)
             fi
+            export HOMEBREW_NO_AUTO_UPDATE
         }
         ,enable-gnu-commands() {
             brewroots=("/opt/homebrew" "/usr/local")
@@ -62,6 +63,7 @@ case "$(uname -s 2> /dev/null)" in
                 gnubinpath=(
                     "$root/opt/coreutils/libexec/gnubin"
                     "$root/opt/findutils/libexec/gnubin"
+                    "$root/opt/gawk/libexec/gnubin"
                     "$root/opt/gnu-getopt/bin"
                     "$root/opt/gnu-indent/libexec/gnubin"
                     "$root/opt/gnu-sed/libexec/gnubin"
@@ -75,6 +77,9 @@ case "$(uname -s 2> /dev/null)" in
         }
         ,enable-rancher-commands() {
             ,add-to-path "$HOME/.rd/bin"
+        }
+        ,enable-go-commands() {
+            ,add-to-path "$HOME/go/bin"
         }
         ,enable-libpg-commands() {
             brewroots=("/opt/homebrew" "/usr/local")
