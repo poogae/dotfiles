@@ -82,27 +82,18 @@ alias pathlist='echo -e ${PATH//:/\\n}'
 # Keybindings
 bindkey -d  # Reset all keybindings
 bindkey -e  # Use emacs keybindings even if our EDITOR is set to vi
-bindkey '^[[Z' reverse-menu-complete
-bindkey '^[[3~' delete-char
-bindkey '^[[1~' beginning-of-line
-bindkey '^[[4~' end-of-line
+bindkey '^[[Z' reverse-menu-complete  # Shift + Tab
+bindkey '^[[3~' delete-char           # Delete
+bindkey '^[[1~' beginning-of-line     # Home
+bindkey '^[[4~' end-of-line           # End
 
 ## Enable forward searching for history with ^S
 ## check key-assignment with `stty -a`, and verify ^S is assigned to stop
 stty stop undef
 
-function _git_status() {
-    if [ $(command git rev-parse --is-inside-work-tree 2> /dev/null) = 'true' ]; then
-        echo 'git status -b --porcelain'
-        git status -b --porcelain
-    fi
-    zle reset-prompt
-}
-zle -N git_status _git_status  # register _git_status function as git_status widget
-bindkey '^G^S' git_status
-
 
 # Hook functions
+## On cd and pushd commands
 function chpwd() {
     emulate -L zsh  # reset options that have been set by users
     ls -A
@@ -110,66 +101,73 @@ function chpwd() {
 
 
 # --------------------------------------------------
-#  Completion settings by zstyle
+#  Completion System
+#  [[ Reference: https://zsh.sourceforge.io/Doc/Release/Completion-System.html ]]
 # --------------------------------------------------
-zstyle ':completion:*' menu select=2
-zstyle ':completion:*' auto-description 'specify: %d'
-zstyle ':completion:*' completer _expand _complete _correct _approximate
-zstyle ':completion:*' group-name ''
-zstyle ':completion:*' list-prompt %SAt %p: Hit TAB for more, or the character to insert%s
-zstyle ':completion:*' matcher-list '' 'm:{a-z}={A-Z}' 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=* l:|=*'
-zstyle ':completion:*' select-prompt %SScrolling active: current selection at %p%s
-zstyle ':completion:*' use-compctl false
-zstyle ':completion:*' verbose true
+autoload -Uz compinit
+compinit
 
-# set colors
+# Context string format is defined as:
+#   ':completion:${function}:${completer}:${command}:${argument}:${tag}'
+# where ${function} is typically blank but is set if completion is called
+# from a named widget rather than through the normal completion system.
+
+zstyle ':completion:*:default' menu select=2
+zstyle ':completion:*' verbose true
+zstyle ':completion:*' auto-description 'specify: %d'
+zstyle ':completion:*' group-name ''
+zstyle ':completion:*' use-compctl false
+zstyle ':completion:*' matcher-list '' 'm:{a-z}={A-Z}' 'm:{a-zA-Z}={A-Za-z}' 'r:|[-_./]=* r:|=* l:|=*'
+
+# Control Functions
+zstyle ':completion:*' completer _complete _correct _approximate  # consider enabling _expand
+zstyle ':completion:*:correct:::'     max-errors 3 numeric  # note: allow numeric argument,
+zstyle ':completion:*:approximate:::' max-errors 3 numeric  #       ESC ${n} TAB, to override
+
+# Enable coloring which tries to match `ls` coloring
 if type dircolors 1>/dev/null 2>&1; then
     eval "$(dircolors -b)"
     zstyle ':completion:*:default' list-colors "${(@s.:.)LS_COLORS}"
-else
-    export CLICOLOR=1
+else  # for non-GNU environment
+    export CLICOLOR=1  # enable ls coloring (eqv. `ls -G` in macOS?)
     zstyle ':completion:*:default' list-colors ''
 fi
 
-# message format colored
-zstyle ':completion:*:corrections' format '%B%F{yellow}%d%f %F{red}(errors: %e)%f%b'
+# Set prompts shown on long completions
+zstyle ':completion:*:default' list-prompt   '%SAt %p: Hit TAB for more, or the character to insert%s'
+zstyle ':completion:*:default' select-prompt '%SScrolling active: current selection at %p%s'
+
+# Set message format and colors
+zstyle ':completion:*:corrections'  format '%B%F{yellow}%d%f %F{red}(errors: %e)%f%b'
 zstyle ':completion:*:descriptions' format '%B%F{yellow}completing %d%f%b'
-zstyle ':completion:*:messages' format '%B%F{yellow}%d%f%b'
-zstyle ':completion:*:warnings' format '%B%F{red}no matches for:%f %F{yellow}%d%f%b'
+zstyle ':completion:*:messages'     format '%B%F{yellow}%d%f%b'
+zstyle ':completion:*:warnings'     format '%B%F{red}no matches for:%f %F{yellow}%d%f%b'
 
-# for kill command
-zstyle ':completion:*:*:kill:*:processes' list-colors '=(#b) #([0-9]#)*=0=01;31'
-zstyle ':completion:*:kill:*' command 'ps -u $USER -o pid,%cpu,tty,cputime,cmd'
-
-# virtualenvwrapper.sh
-if [ -f /usr/local/bin/virtualenvwrapper.sh ]; then
-    source /usr/local/bin/virtualenvwrapper.sh
-fi
-
+# Customize for kill command
+zstyle ':completion:*:*:kill:*:processes' list-colors '=(#b) #([0-9]#)*=0=1;32'
+zstyle ':completion:*:*:kill:*:processes' command 'ps -u $USER -o pid,pcpu,tty,cputime,args'
 
 
 # --------------------------------------------------
 #  Load functions supplied by the distribution
+#  [[ Reference: https://zsh.sourceforge.io/Doc/Release/User-Contributions.html ]]
 # --------------------------------------------------
-## Enable colors
-autoload -Uz colors
-colors
-
-## Use modern completion system
-autoload -Uz compinit
-compinit
-
-## Prompt setting
-autoload -Uz promptinit
-promptinit
-prompt adam1 blue cyan green
-
-## Prompt for version control system
-autoload -Uz vcs_info
+# Load common functions
 autoload -Uz add-zsh-hook
 autoload -Uz is-at-least
 
-RPROMPT=""
+# Use pre-defined prompt format and colors --- promptinit {{{
+autoload -Uz promptinit
+promptinit
+
+# Apply adam1 theme: see below for more on `prompt` command and adam1
+#  % prompt
+#  % prompt -h adam1
+prompt adam1 blue cyan green
+# }}}
+
+# Customize prompt line for version control system --- vcs_info {{{
+autoload -Uz vcs_info
 
 # Export three messages shown below
 # - $vcs_info_msg_0_, for normal messages (green)
@@ -179,7 +177,7 @@ RPROMPT=""
 zstyle ':vcs_info:*' max-exports 3
 zstyle ':vcs_info:*' enable git svn hg bzr
 
-# Set common format for each vcs except git
+# Set common formats for vcs(s) other than git
 #   %s, name of vcs
 #   %b, branch information
 #   %r, name of repository
@@ -202,16 +200,48 @@ if is-at-least 4.3.10; then
 fi
 
 if is-at-least 4.3.11; then
-    # Set formats for git using hook functions
+    # Register hooks called when vcs (i.e. git) is detected.
+    zstyle ':vcs_info:git+pre-get-data:*' hooks git-get-remote-info
+    # Register hooks called each time before a `vcs_info_msg_N_` message is set.
+    # It takes two arguments;
+    # 1. the `N` in the message variable name,
+    # 2. the currently configured formats or actionformats.
+    # Note:
     #   each hook function is called on every message on either formats or actionformats
     #   in other words, at most they are called three times since actionformats takes three messages
     zstyle ':vcs_info:git+set-message:*' hooks git-hook-begin git-untracked git-push-status git-nomerge-branch git-stash-count
 
-    # first hook function
-    # whose behavior is to determine if it is inside a working tree
+    function +vi-git-get-remote-info()
+    {
+        typeset -gA vcs_info_git_cache
+        local repo_root="$(command git rev-parse --show-toplevel 2>/dev/null)"
+        if [[ -z "${vcs_info_git_cache["$repo_root"]}" ]]; then
+            local remotes=("${(@f)$(command git remote 2>/dev/null)}")
+            local first_remote="${remotes[1]}"
+            if [[ -n "$first_remote" ]]; then
+                local remote_info="$(command git remote show "$first_remote" 2>/dev/null)"
+                local default_branch="${${remote_info/(#b)*HEAD branch*:[[:blank:]]#([[:graph:]]##)*/$match[1]}:#$remote_info}"
+            fi
+            local null=$'\0'
+            vcs_info_git_cache["$repo_root"]="${first_remote:-}$null${default_branch:-}"
+        fi
+        pair=("${(@0)vcs_info_git_cache["$repo_root"]}")
+        if [[ "${#pair[@]}" -eq 2 ]]; then
+            user_data[remote]="$pair[1]"
+            user_data[default_branch]="$pair[2]"
+            return 0
+        fi
+    }
+
+    # first hook function whose behavior is to determine
+    #   1. if it is inside a working tree
+    #   2. if it is for the second message (e.g. $vcs_info_msg_1_)
+    #      as the following functions are for the second message (`%u` and `%m`)
     function +vi-git-hook-begin()
     {
-        if [ $(command git rev-parse --is-inside-work-tree 2> /dev/null) != 'true' ]; then
+        if [[ $(command git rev-parse --is-inside-work-tree 2>/dev/null) != 'true' ]]; then
+            return 1  # prevent following hook functions from being called
+        elif [[ "$1" -ne 1 ]]; then
             return 1  # prevent following hook functions from being called
         else
             return 0  # proceed following hook functions
@@ -222,12 +252,9 @@ if is-at-least 4.3.11; then
     # which additionally prints '?' if there is an untracked file
     function +vi-git-untracked()
     {
-        # proceed only if this is for the second message for either formats or actionformats
-        if [ "$1" != "1" ]; then
-            return 0
-        fi
-
-        if command git status --porcelain 2> /dev/null | command grep -F '??' >/dev/null 2>&1 ; then
+        local status_info=("${(@f)$(command git status --porcelain 2>/dev/null)}")
+        local unstaged_files=("${(@M)status_info:#*[?][?]*}")  # filter { it.contains("??") }
+        if [[ "${#unstaged_files[@]}" -gt 0 ]]; then
             hook_com[unstaged]+='?'
         fi
     }
@@ -236,19 +263,17 @@ if is-at-least 4.3.11; then
     # which additionally prints '(pN)' where N is the number of unpushed commits
     function +vi-git-push-status()
     {
-        if [ "$1" != "1" ]; then
-            return 0
-        fi
+        local remote="${user_data[remote]}"
+        local default_branch="${user_data[default_branch]}"
+        [[ -z "$remote" || -z "$default_branch" ]] && return 0
 
-        # do nothing if it is not master branch
-        if [ "${hook_com[branch]}" != "master" ]; then
-            return 0
-        fi
+        # do nothing if it is not the default branch
+        [[ "${hook_com[branch]}" != "$default_branch" ]] && return 0
 
-        local ahead
-        ahead=$(command git rev-list origin/master..master 2>/dev/null | wc -l | tr -d ' ')
-        if [[ "$ahead" -gt 0 ]]; then
-            hook_com[misc]+="(p${ahead})"
+        local raw="$(command git rev-list "${remote}/${default_branch}..${default_branch}" 2>/dev/null)"
+        if [[ -n "$raw" ]]; then
+            local commits_ahead=("${(@f)raw}")
+            hook_com[misc]+="(p${#commits_ahead[@]})"
         fi
     }
 
@@ -256,19 +281,14 @@ if is-at-least 4.3.11; then
     # which additionally prints '(mN)' where N is the number of unmerged commits
     function +vi-git-nomerge-branch()
     {
-        if [ "$1" != "1" ]; then
-            return 0
-        fi
+        # do nothing if it is the default branch
+        local default_branch=${user_data[default_branch]:-$(command git config --get init.defaultBranch 2>/dev/null)}
+        [[ "${hook_com[branch]}" = "$default_branch" ]] && return 0
 
-        # do nothing if it is master branch
-        if [ "${hook_com[branch]}" = "master" ]; then
-            return 0
-        fi
-
-        local nomerged
-        nomerged=$(command git rev-list master..${hook_com[branch]} 2>/dev/null | wc -l | tr -d ' ')
-        if [ "$nomerged" -gt 0 ]; then
-            hook_com[misc]+="(m${nomerged})"
+        local raw="$(command git rev-list "${default_branch}..${hook_com[branch]}" 2>/dev/null)}"
+        if [[ -n "$raw" ]]; then
+            local commits_unmerged=("${(@f)raw}")
+            hook_com[misc]+="(m${#commits_unmerged[@]})"
         fi
     }
 
@@ -276,14 +296,10 @@ if is-at-least 4.3.11; then
     # which additionally prints ':SN' where N is the number of stash entries
     function +vi-git-stash-count()
     {
-        if [ "$1" != "1" ]; then
-            return 0
-        fi
-
-        local stash
-        stash=$(command git stash list 2>/dev/null | wc -l | tr -d ' ')
-        if [ "${stash}" -gt 0 ]; then
-            hook_com[misc]+=":S${stash}"
+        local raw="$(command git stash list 2>/dev/null)"
+        if [[ -n "$raw" ]]; then
+            local stashes=("${(@f)raw}")
+            hook_com[misc]+=":S${#stashes[@]}"
         fi
     }
 fi
@@ -294,7 +310,7 @@ function _update_vcs_info_msg() {
 
     LANG=en_US vcs_info
 
-    if [ -z ${vcs_info_msg_0_} ]; then
+    if [[ -z ${vcs_info_msg_0_} ]]; then
         # if not configured by vcs_info i.e. the string has zero length
         prompt=""
     else
@@ -308,17 +324,18 @@ function _update_vcs_info_msg() {
     fi
     RPROMPT="$prompt"
 }
+
 add-zsh-hook precmd _update_vcs_info_msg
+# }}}
 
 
 # ==================================================
 #  Plugins installed by zplug
 # ==================================================
-if [ ! -d $HOME/.zplug ]; then
-    git clone https://github.com/zplug/zplug $HOME/.zplug
+if [[ ! -d "$HOME/.zplug" ]]; then
+    git clone --filter=blob:none https://github.com/zplug/zplug "$HOME/.zplug"
 fi
-
-source $HOME/.zplug/init.zsh
+source "$HOME/.zplug/init.zsh"
 
 # Place our plugins
 zplug "zsh-users/zsh-syntax-highlighting", defer:2
@@ -346,3 +363,18 @@ ZSH_HIGHLIGHT_STYLES[reserved-word]='fg=blue,bold'
 ZSH_HIGHLIGHT_STYLES[alias]='fg=yellow,bold'
 ZSH_HIGHLIGHT_STYLES[builtin]='fg=yellow,bold'
 ZSH_HIGHLIGHT_STYLES[command]='fg=yellow,bold'
+
+
+# ==================================================
+# Config for third-party commands
+# ==================================================
+
+# sdkman {{{
+,enable-sdkman() {
+    sdkman_dir="$(brew --prefix sdkman-cli)/libexec"
+    if [ -s "$sdkman_dir/bin/sdkman-init.sh" ]; then
+        export SDKMAN_DIR="$sdkman_dir"
+        source "$sdkman_dir/bin/sdkman-init.sh"
+    fi
+}
+# }}}
