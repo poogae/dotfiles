@@ -4,11 +4,6 @@
 "     \ \ / / | '_ ` _ \| '__/ __|
 "      \ V /| | | | | | | | | (__
 "       \_/ |_|_| |_| |_|_|  \___|
-"    _       _ _         _
-"   (_)_ __ (_) |___   _(_)_ __ ___
-"   | | '_ \| | __\ \ / / | '_ ` _ \
-"   | | | | | | |_ \ V /| | | | | | |
-"   |_|_| |_|_|\__(_)_/ |_|_| |_| |_|
 "
 " _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
 
@@ -46,7 +41,7 @@ endif
 " --------------------------------------------------
 " Enable copy and paste with clipboard supplied by OS
 set clipboard=unnamed
-if has('unnamedplus') || has('nvim')
+if has('unnamedplus')
     set clipboard+=unnamedplus
 endif
 
@@ -80,12 +75,12 @@ set wildmode=longest:full,full
 set history=1024
 
 " Backspace and other control keys' action
-" - do allow <BS> to take effect only on indents in insert mode
-" - do not allow <BS> and <Space> to move aross lines in normal mode
-set backspace=indent,start,eol
+" - allow <BS> to take effect over indents, eols and start position in insert mode
+" - do not allow <BS> and <Space> to move across lines in normal mode
+set backspace=indent,eol,start
 set whichwrap-=b,s
 
-" Letter type recognized for <C-a>
+" Letter type recognized for <C-a> and <C-x>
 set nrformats-=octal
 
 " Enable moving cursor to virtual space
@@ -121,7 +116,7 @@ set cinoptions=>s,Ls,:0,l1,g0,t0,i0,+s,(s,U1,m1
 " Indent with of vim script
 let g:vim_indent_cont = &shiftwidth
 
-" Pairs as brackets used by % command
+" Pair(s) of characters recognized by `%' command
 set matchpairs+=<:>
 
 " Folding
@@ -164,14 +159,12 @@ set mouse=a
 set modeline
 
 " Encryption algorithm used by command-line option [-x] or Ex command [:X]
-if !has('nvim')
-    if v:version < 703
-        set cryptmethod=zip
-    elseif v:version < 705
-        set cryptmethod=blowfish
-    else
-        set cryptmethod=blowfish2
-    endif
+if v:version < 703
+    set cryptmethod=zip
+elseif v:version < 705
+    set cryptmethod=blowfish
+else
+    set cryptmethod=blowfish2
 endif
 
 " Disable beep sounds
@@ -483,7 +476,7 @@ endfunction
 " --------------------------------------------------
 nnoremap Y y$
 vnoremap <silent> * "vy/\V<C-r>=substitute(escape(@v, '\/'), "\n", '\\n', 'g')<CR><CR>
-vnoremap <silent> # "vy?\V<C-r>=substitute(escape(@v, '\/'), "\n", '\\n', 'g')<CR><CR>
+vnoremap <silent> # "vy?\V<C-r>=substitute(escape(@v, '\?'), "\n", '\\n', 'g')<CR><CR>
 
 " Disable searching or its highlight
 nnoremap <silent> <Esc><Esc> :nohlsearch<CR>
@@ -575,10 +568,6 @@ nnoremap <silent> [switch]r :setlocal relativenumber!<CR>:setlocal relativenumbe
 " For my functions or commands
 nnoremap <silent> co :ContinuousNumber <C-a><CR>
 vnoremap <silent> co :ContinuousNumber <C-a><CR>
-
-if has('nvim')
-    tnoremap <silent> <Esc> <C-\><C-n>
-endif
 
 " Enable input completion anytime
 " for s:key in split('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_', '\zs')

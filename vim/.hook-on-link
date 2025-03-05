@@ -1,4 +1,0 @@
-#!/bin/sh -e
-
-ln -fns vimrc init.vim
-ln -fns gvimrc ginit.vim
