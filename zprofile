@@ -1,2 +1,2 @@
 #!/bin/zsh
-emulate sh -c 'source $HOME/.profile'
+emulate zsh -c 'source $HOME/.profile'
