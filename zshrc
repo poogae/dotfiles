@@ -217,13 +217,26 @@ if is-at-least 4.3.11; then
         local repo_root="$(command git rev-parse --show-toplevel 2>/dev/null)"
         if [[ -z "${vcs_info_git_cache["$repo_root"]}" ]]; then
             local remotes=("${(@f)$(command git remote 2>/dev/null)}")
-            local first_remote="${remotes[1]}"
-            if [[ -n "$first_remote" ]]; then
-                local remote_info="$(command git remote show "$first_remote" 2>/dev/null)"
-                local default_branch="${${remote_info/(#b)*HEAD branch*:[[:blank:]]#([[:graph:]]##)*/$match[1]}:#$remote_info}"
+            local remotes_matching_origin=("${(@M)remotes:#origin}")
+            local remote=''
+            local default_branch=''
+            if [[ "${#remotes_matching_origin[@]}" -gt 0 ]]; then
+                remote='origin'
+            elif [[ -n "${remotes[1]}" ]]; then
+                remote="${remotes[1]}"
+            fi
+            if [[ -n "$remote" ]]; then
+                local remote_info="$(command git remote show "$remote" 2>/dev/null)"
+                default_branch="${${remote_info/(#b)*HEAD branch*:[[:blank:]]#([[:graph:]]##)*/$match[1]}:#$remote_info}"
+            else
+                local branches=("${(@f)$(command git rev-parse --symbolic --branches 2>/dev/null)}")
+                local candidates=("${(@M)branches:#(main|master)}")
+                if [[ "${#candidates[@]}" -gt 0 ]]; then
+                    default_branch="${candidates[1]}"
+                fi
             fi
             local null=$'\0'
-            vcs_info_git_cache["$repo_root"]="${first_remote:-}$null${default_branch:-}"
+            vcs_info_git_cache["$repo_root"]="$remote$null$default_branch"
         fi
         pair=("${(@0)vcs_info_git_cache["$repo_root"]}")
         if [[ "${#pair[@]}" -eq 2 ]]; then
@@ -281,11 +294,13 @@ if is-at-least 4.3.11; then
     # which additionally prints '(mN)' where N is the number of unmerged commits
     function +vi-git-nomerge-branch()
     {
+        local default_branch=${user_data[default_branch]}
+        [[ -z "$default_branch" ]] && return 0
+
         # do nothing if it is the default branch
-        local default_branch=${user_data[default_branch]:-$(command git config --get init.defaultBranch 2>/dev/null)}
         [[ "${hook_com[branch]}" = "$default_branch" ]] && return 0
 
-        local raw="$(command git rev-list "${default_branch}..${hook_com[branch]}" 2>/dev/null)}"
+        local raw="$(command git rev-list "${default_branch}..${hook_com[branch]}" 2>/dev/null)"
         if [[ -n "$raw" ]]; then
             local commits_unmerged=("${(@f)raw}")
             hook_com[misc]+="(m${#commits_unmerged[@]})"
