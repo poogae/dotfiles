@@ -3,6 +3,7 @@ import = [ "alacritty-theme/themes/gruvbox_dark.toml" ]
 
 [window]
 dimensions = { columns = 110, lines = 255 }
+opacity = 0.95
 
 [font]
 normal = { family = "0xProto Nerd Font", style = "Regular" }
